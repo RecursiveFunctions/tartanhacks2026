@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CMU Friend Roulette — Add Availability</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+    <style>
+      .form-group {
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--muted);
+        border-radius: 4px;
+        background: rgba(255,255,255,0.05);
+        color: #e6eef6;
+        font-family: inherit;
+      }
+      .hour-blocks {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .hour-block-item {
+        display: flex;
+        align-items: center;
+      }
+      input[type="checkbox"] {
+        margin-right: 8px;
+      }
+      .days-input {
+        width: 100%;
+        padding: 6px;
+        margin-top: 4px;
+        border: 1px solid var(--muted);
+        border-radius: 4px;
+        background: rgba(255,255,255,0.05);
+        color: #e6eef6;
+        font-family: inherit;
+        font-size: 12px;
+      }
+      .day-note {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .success-message {
+        background: rgba(106,211,166,0.2);
+        border-left: 4px solid var(--accent);
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        display: none;
+      }
+      .error-message {
+        background: rgba(255,100,100,0.2);
+        border-left: 4px solid #ff6464;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Add Your Availability</h1>
+        <p class="lead">Tell us when you're available to meet new friends!</p>
+      </header>
+
+      <div id="success" class="success-message"></div>
+      <div id="error" class="error-message"></div>
+
+      <form id="availabilityForm">
+        <div class="form-group">
+          <label for="andrewId">Andrew ID (required)</label>
+          <input type="text" id="andrewId" name="andrewId" placeholder="e.g., jsmith" required />
+        </div>
+
+        <div class="form-group">
+          <label>Select your available time blocks and days</label>
+          <p class="day-note">For each time slot, enter the days you're available (comma-separated, e.g., "Monday, Wednesday, Friday")</p>
+          <div id="hourBlocksContainer"></div>
+        </div>
+
+        <button type="submit" class="btn" style="background: var(--accent); color: #052018;">
+          Submit Availability
+        </button>
+      </form>
+
+      <footer>
+        <small><a href="/" style="color: var(--accent); text-decoration: none;">← Back to overlaps</a></small>
+      </footer>
+    </main>
+
+    <script>
+      const form = document.getElementById('availabilityForm');
+      const successMsg = document.getElementById('success');
+      const errorMsg = document.getElementById('error');
+
+      // Fetch hour blocks and render form
+      async function loadHourBlocks() {
+        try {
+          const res = await fetch('/api/bot/headers');
+          const data = await res.json();
+          
+          if (!res.ok || !data.hour_blocks) {
+            errorMsg.textContent = 'Failed to load hour blocks.';
+            errorMsg.style.display = 'block';
+            return;
+          }
+
+          const container = document.getElementById('hourBlocksContainer');
+          data.hour_blocks.forEach(block => {
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.style.borderLeft = '2px solid var(--accent)';
+            div.style.paddingLeft = '12px';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = block;
+            checkbox.value = block;
+            checkbox.className = 'hour-block-checkbox';
+            
+            const label = document.createElement('label');
+            label.htmlFor = block;
+            label.textContent = block;
+            label.style.marginBottom = '8px';
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'days-input';
+            input.placeholder = 'e.g., Monday, Wednesday, Friday';
+            input.disabled = true;
+            input.dataset.block = block;
+            
+            checkbox.addEventListener('change', (e) => {
+              input.disabled = !e.target.checked;
+              if (!e.target.checked) input.value = '';
+            });
+            
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            div.appendChild(input);
+            container.appendChild(div);
+          });
+        } catch (e) {
+          errorMsg.textContent = 'Error loading form: ' + e.message;
+          errorMsg.style.display = 'block';
+        }
+      }
+
+      // Handle form submission
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const andrewId = document.getElementById('andrewId').value.trim();
+        const availability = {};
+        let hasSelection = false;
+
+        // Collect selected hour blocks and their days
+        document.querySelectorAll('.hour-block-checkbox:checked').forEach(checkbox => {
+          const block = checkbox.value;
+          const daysInput = document.querySelector(`.days-input[data-block="${block}"]`);
+          const days = daysInput.value.trim();
+          
+          if (days) {
+            availability[block] = days;
+            hasSelection = true;
+          }
+        });
+
+        if (!andrewId) {
+          errorMsg.textContent = 'Please enter your Andrew ID.';
+          errorMsg.style.display = 'block';
+          successMsg.style.display = 'none';
+          return;
+        }
+
+        if (!hasSelection) {
+          errorMsg.textContent = 'Please select at least one time block and enter the days.';
+          errorMsg.style.display = 'block';
+          successMsg.style.display = 'none';
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/bot/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              andrew_id: andrewId,
+              availability: availability
+            })
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            successMsg.textContent = '✓ ' + data.message + ' Your availability has been recorded.';
+            successMsg.style.display = 'block';
+            errorMsg.style.display = 'none';
+            form.reset();
+            document.querySelectorAll('.days-input').forEach(inp => inp.disabled = true);
+          } else {
+            errorMsg.textContent = 'Error: ' + (data.error || 'Unknown error');
+            errorMsg.style.display = 'block';
+            successMsg.style.display = 'none';
+          }
+        } catch (e) {
+          errorMsg.textContent = 'Submit error: ' + e.message;
+          errorMsg.style.display = 'block';
+          successMsg.style.display = 'none';
+        }
+      });
+
+      // Load hour blocks on page load
+      loadHourBlocks();
+    </script>
+  </body>
+</html>
