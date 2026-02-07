@@ -15,6 +15,7 @@ or
 import os
 import csv
 import importlib.util
+import fcntl
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -92,10 +93,26 @@ def append_to_csv(andrew_id, availability_dict):
         elif header not in new_row:
             new_row[header] = ''
     
-    # Append the row to the CSV
+    # Append the row to the CSV while holding an exclusive file lock
     with open(csv_path, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
-        writer.writerow(new_row)
+        try:
+            # Acquire exclusive lock
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            writer = csv.DictWriter(f, fieldnames=headers)
+            writer.writerow(new_row)
+            # Ensure data is flushed to disk
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except Exception:
+                # fsync may not be available on all platforms; ignore if it fails
+                pass
+        finally:
+            # Release lock
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
 
 
 @app.get("/", response_class=HTMLResponse)
