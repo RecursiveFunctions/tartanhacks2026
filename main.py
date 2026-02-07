@@ -3,10 +3,10 @@ import asyncio
 import discord
 from fastmcp import FastMCP
 
-# 1. Initialize MCP - Dedalus expects SSE transport in the cloud
+# 1. Initialize MCP
 mcp = FastMCP("Roulo-Matchmaker")
 
-# 2. Setup Discord
+# 2. Setup Discord 
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
@@ -47,16 +47,16 @@ async def send_discord_dm(user_id: str, content: str) -> str:
     except Exception as e:
         return f"Failed: {e}"
 
-# 3. Lifecycle Hook: Start Discord when the MCP server starts
+# 3. Use the MCP lifecycle to start the bot
 @mcp.on_startup()
 async def start_bot():
     token = os.getenv("DISCORD_BOT_TOKEN")
     if token:
-        # Use .start() instead of .run() to share the async loop
+        # We use .start() instead of .run() to keep the loop shared
         asyncio.create_task(client.start(token))
     else:
         print("❌ DISCORD_BOT_TOKEN missing in Credentials tab")
 
 if __name__ == "__main__":
-    # Force the path to /mcp so Dedalus can find the endpoint
+    # Host must be 0.0.0.0 and transport must be SSE for Dedalus
     mcp.run(transport="sse", host="0.0.0.0", port=8000)
