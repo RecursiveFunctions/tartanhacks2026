@@ -71,4 +71,4 @@ threading.Thread(target=start_discord, daemon=True).start()
 # 8. Start the MCP Server
 if __name__ == "__main__":
     # This matches the port for your Cloudflare tunnel
-    mcp.run(host="0.0.0.0", port=8000)
+  mcp.run(transport="sse", host="0.0.0.0", port=8000)
