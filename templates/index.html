@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CMU Friend Roulette — Overlaps</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>CMU Friend Roulette</h1>
+        <p class="lead">View overlapping availability from the survey and preview pair suggestions.</p>
+      </header>
+
+      <section class="controls">
+        <button id="refresh">Load overlaps</button>
+        <a class="btn" href="/CMU%20Friend%20Roulette%20Availability%20Responses%20-%20Form%20Responses%201.csv" download>Download CSV</a>
+      </section>
+
+      <section id="status" class="status">Idle</section>
+
+      <section id="results" class="results"></section>
+
+      <footer>
+        <small>Served from the repository. Run with <code>uvicorn Website:app --reload</code>.</small>
+      </footer>
+    </main>
+
+    <script src="/static/js/main.js"></script>
+  </body>
+</html>
