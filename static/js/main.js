@@ -18,17 +18,20 @@ async function fetchOverlaps(){
       return;
     }
 
-    for(const key of Object.keys(data.pairs)){
-      const pair = data.pairs[key];
+    for(const pairObj of data.pairs){
       const el = document.createElement('div');
       el.className = 'pair';
+      
       const title = document.createElement('h3');
-      title.textContent = key.replace(/[()\"]+/g,'');
+      title.textContent = `${pairObj.id1} & ${pairObj.id2}`;
       el.appendChild(title);
 
-      const pre = document.createElement('pre');
-      pre.textContent = JSON.stringify(pair, null, 2);
-      el.appendChild(pre);
+      const schedule = pairObj.schedule;
+      for(const [day, hours] of Object.entries(schedule)){
+        const dayEl = document.createElement('p');
+        dayEl.innerHTML = `<strong>${day}:</strong> ${hours.join(', ')}`;
+        el.appendChild(dayEl);
+      }
 
       results.appendChild(el);
     }

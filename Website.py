@@ -55,7 +55,17 @@ async def api_overlaps():
     try:
         data = overlaps_mod.load_availability_data(csv_path)
         pairs = overlaps_mod.find_overlapping_pairs_by_day(data)
-        return JSONResponse({"pairs_count": len(pairs), "pairs": pairs})
+        
+        # Convert tuple keys to string keys for JSON serialization
+        pairs_list = []
+        for (id1, id2), schedule in pairs.items():
+            pairs_list.append({
+                "id1": id1,
+                "id2": id2,
+                "schedule": schedule
+            })
+        
+        return JSONResponse({"pairs_count": len(pairs_list), "pairs": pairs_list})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
